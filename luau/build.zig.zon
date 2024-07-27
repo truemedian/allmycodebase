@@ -1,0 +1,14 @@
+.{
+    .name = "luau",
+    .version = "0.636.0",
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+    },
+    .dependencies = .{
+        .luau = .{
+            .url = "https://github.com/luau-lang/luau/archive/refs/tags/0.636.zip",
+            .hash = "12209b0238be439df5b82984afabb13da96264f165a46dfe3f185872ab2ed7e81aa3",
+        },
+    },
+}
