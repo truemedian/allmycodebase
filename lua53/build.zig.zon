@@ -1,0 +1,14 @@
+.{
+    .name = "lua",
+    .version = "5.3.6",
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+    },
+    .dependencies = .{
+        .lua = .{
+            .url = "https://www.lua.org/ftp/lua-5.3.6.tar.gz",
+            .hash = "1220937a223531ef6b3fea8f653dc135310b0e84805e7efa148870191f5ab915c828",
+        },
+    },
+}
