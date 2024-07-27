@@ -1,0 +1,14 @@
+.{
+    .name = "libuv",
+    .version = "1.48.0",
+    .dependencies = .{
+        .libuv = .{
+            .url = "git+https://github.com/libuv/libuv#v1.48.0",
+            .hash = "1220c2e1269cfee3735a7331f1fa4c13aa3e4f355fca5b402be3ea72a464c76f1324",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+    },
+}
