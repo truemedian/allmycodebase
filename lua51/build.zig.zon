@@ -10,5 +10,9 @@
             .url = "https://www.lua.org/ftp/lua-5.1.5.tar.gz",
             .hash = "1220089572fb380fb4679b16421fc53851a8226bcebc9ce44463a0f4ada5c9bd737f",
         },
+        .@"lua-test" = .{
+            .url = "https://www.lua.org/tests/lua5.1-tests.tar.gz",
+            .hash = "1220baa10a673b1fe188b1addb24a633f9f7bd513646fd90cb1a825f7a8f5241063f",
+        },
     },
 }

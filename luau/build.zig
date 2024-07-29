@@ -20,11 +20,14 @@ pub fn build(b: *std.Build) void {
     const luau_compile_cli = b.addExecutable(.{ .name = "luau-compile", .target = target, .optimize = optimize });
     const luau_bytecode_cli = b.addExecutable(.{ .name = "luau-bytecode", .target = target, .optimize = optimize });
 
+    const luau_tests = b.addExecutable(.{ .name = "luau-tests", .target = target, .optimize = optimize });
+
     inline for (.{ luau_cli_lib, luau_ast, luau_compiler, luau_config, luau_analysis, luau_eqsat, luau_codegen, luau_vm }) |obj| {
         obj.addIncludePath(upstream.path("Common/include"));
 
         obj.root_module.addCMacro("LUA_USE_LONGJMP", "1");
         obj.root_module.addCMacro("LUA_API", "extern\"C\"");
+        obj.root_module.sanitize_c = false;
 
         obj.linkLibCpp();
     }
@@ -37,6 +40,15 @@ pub fn build(b: *std.Build) void {
 
         obj.linkLibCpp();
     }
+
+    luau_tests.addIncludePath(upstream.path("Common/include"));
+
+    luau_tests.root_module.addCMacro("LUA_USE_LONGJMP", "1");
+    luau_tests.root_module.addCMacro("LUA_API", "extern\"C\"");
+    luau_tests.root_module.addCMacro("LUACODE_API", "extern\"C\"");
+    luau_tests.root_module.addCMacro("LUACODEGEN_API", "extern\"C\"");
+
+    luau_tests.linkLibCpp();
 
     luau_compiler.root_module.addCMacro("LUACODE_API", "extern\"C\"");
     luau_codegen.root_module.addCMacro("LUACODEGEN_API", "extern\"C\"");
@@ -51,7 +63,7 @@ pub fn build(b: *std.Build) void {
 
     luau_ast.linkLibrary(luau_cli_lib);
     luau_ast.addIncludePath(upstream.path("Ast/include"));
-    luau_ast.installHeadersDirectory(upstream.path("Ast/Include"), "", .{});
+    luau_ast.installHeadersDirectory(upstream.path("Ast/include"), "", .{});
     luau_ast.addCSourceFiles(.{
         .root = upstream.path(""),
         .files = &.{
@@ -67,7 +79,7 @@ pub fn build(b: *std.Build) void {
 
     luau_compiler.linkLibrary(luau_ast);
     luau_compiler.addIncludePath(upstream.path("Compiler/include"));
-    luau_compiler.installHeadersDirectory(upstream.path("Compiler/Include"), "", .{});
+    luau_compiler.installHeadersDirectory(upstream.path("Compiler/include"), "", .{});
     luau_compiler.addCSourceFiles(.{
         .root = upstream.path(""),
         .files = &.{
@@ -86,7 +98,7 @@ pub fn build(b: *std.Build) void {
 
     luau_config.linkLibrary(luau_ast);
     luau_config.addIncludePath(upstream.path("Config/include"));
-    luau_config.installHeadersDirectory(upstream.path("Config/Include"), "", .{});
+    luau_config.installHeadersDirectory(upstream.path("Config/include"), "", .{});
     luau_config.addCSourceFiles(.{
         .root = upstream.path(""),
         .files = &.{
@@ -99,7 +111,7 @@ pub fn build(b: *std.Build) void {
     luau_analysis.linkLibrary(luau_eqsat);
     luau_analysis.linkLibrary(luau_config);
     luau_analysis.addIncludePath(upstream.path("Analysis/include"));
-    luau_analysis.installHeadersDirectory(upstream.path("Analysis/Include"), "", .{});
+    luau_analysis.installHeadersDirectory(upstream.path("Analysis/include"), "", .{});
     luau_analysis.addCSourceFiles(.{
         .root = upstream.path(""),
         .files = &.{
@@ -166,7 +178,7 @@ pub fn build(b: *std.Build) void {
     });
 
     luau_eqsat.addIncludePath(upstream.path("EqSat/include"));
-    luau_eqsat.installHeadersDirectory(upstream.path("EqSat/Include"), "", .{});
+    luau_eqsat.installHeadersDirectory(upstream.path("EqSat/include"), "", .{});
     luau_eqsat.addCSourceFiles(.{
         .root = upstream.path(""),
         .files = &.{
@@ -178,7 +190,7 @@ pub fn build(b: *std.Build) void {
     luau_codegen.linkLibrary(luau_vm);
     luau_codegen.addIncludePath(upstream.path("VM/src"));
     luau_codegen.addIncludePath(upstream.path("CodeGen/include"));
-    luau_codegen.installHeadersDirectory(upstream.path("CodeGen/Include"), "", .{});
+    luau_codegen.installHeadersDirectory(upstream.path("CodeGen/include"), "", .{});
     luau_codegen.addCSourceFiles(.{
         .root = upstream.path(""),
         .files = &.{
@@ -222,7 +234,7 @@ pub fn build(b: *std.Build) void {
     });
 
     luau_vm.addIncludePath(upstream.path("VM/include"));
-    luau_vm.installHeadersDirectory(upstream.path("VM/Include"), "", .{});
+    luau_vm.installHeadersDirectory(upstream.path("VM/include"), "", .{});
     luau_vm.addCSourceFiles(.{
         .root = upstream.path(""),
         .files = &.{
@@ -335,6 +347,137 @@ pub fn build(b: *std.Build) void {
             "CLI/Bytecode.cpp",
         },
     });
+
+    luau_tests.linkLibrary(luau_analysis);
+    luau_tests.linkLibrary(luau_ast);
+    luau_tests.linkLibrary(luau_cli_lib);
+    luau_tests.linkLibrary(luau_codegen);
+    luau_tests.linkLibrary(luau_compiler);
+    luau_tests.linkLibrary(luau_config);
+    luau_tests.linkLibrary(luau_eqsat);
+    luau_tests.linkLibrary(luau_vm);
+    luau_tests.root_module.addCMacro("DOCTEST_CONFIG_DOUBLE_STRINGIFY", "1");
+    luau_tests.root_module.addCMacro("LUAU_CONFORMANCE_SOURCE_DIR", b.fmt("\"{}\"", .{std.zig.fmtEscapes(upstream.builder.pathFromRoot("tests/conformance"))}));
+    luau_tests.addIncludePath(upstream.path("extern/isocline/include"));
+    luau_tests.addIncludePath(upstream.path("extern"));
+    luau_tests.addIncludePath(upstream.path("CLI"));
+    luau_tests.addCSourceFiles(.{
+        .root = upstream.path(""),
+        .files = &.{
+            "tests/AnyTypeSummary.test.cpp",
+            "tests/AssemblyBuilderA64.test.cpp",
+            "tests/AssemblyBuilderX64.test.cpp",
+            "tests/AstJsonEncoder.test.cpp",
+            "tests/AstQuery.test.cpp",
+            "tests/AstQueryDsl.cpp",
+            "tests/AstVisitor.test.cpp",
+            "tests/Autocomplete.test.cpp",
+            "tests/BuiltinDefinitions.test.cpp",
+            "tests/ClassFixture.cpp",
+            "tests/CodeAllocator.test.cpp",
+            "tests/Compiler.test.cpp",
+            "tests/Config.test.cpp",
+            "tests/ConstraintGeneratorFixture.cpp",
+            "tests/ConstraintSolver.test.cpp",
+            "tests/CostModel.test.cpp",
+            "tests/DataFlowGraph.test.cpp",
+            "tests/DenseHash.test.cpp",
+            "tests/DiffAsserts.cpp",
+            "tests/Differ.test.cpp",
+            "tests/EqSat.language.test.cpp",
+            "tests/EqSat.propositional.test.cpp",
+            "tests/EqSat.slice.test.cpp",
+            "tests/Error.test.cpp",
+            "tests/Fixture.cpp",
+            "tests/Frontend.test.cpp",
+            "tests/Generalization.test.cpp",
+            "tests/InsertionOrderedMap.test.cpp",
+            "tests/Instantiation2.test.cpp",
+            "tests/IrBuilder.test.cpp",
+            "tests/IrCallWrapperX64.test.cpp",
+            "tests/IrRegAllocX64.test.cpp",
+            "tests/JsonEmitter.test.cpp",
+            "tests/Lexer.test.cpp",
+            "tests/Linter.test.cpp",
+            "tests/LValue.test.cpp",
+            "tests/Module.test.cpp",
+            "tests/NonstrictMode.test.cpp",
+            "tests/NonStrictTypeChecker.test.cpp",
+            "tests/Normalize.test.cpp",
+            "tests/NotNull.test.cpp",
+            "tests/Parser.test.cpp",
+            "tests/RegisterCallbacks.cpp",
+            "tests/RequireTracer.test.cpp",
+            "tests/RuntimeLimits.test.cpp",
+            "tests/Simplify.test.cpp",
+            "tests/Set.test.cpp",
+            "tests/StringUtils.test.cpp",
+            "tests/Subtyping.test.cpp",
+            "tests/Symbol.test.cpp",
+            "tests/ToDot.test.cpp",
+            "tests/TopoSort.test.cpp",
+            "tests/ToString.test.cpp",
+            "tests/Transpiler.test.cpp",
+            "tests/TxnLog.test.cpp",
+            "tests/TypeFunction.test.cpp",
+            "tests/TypeInfer.aliases.test.cpp",
+            "tests/TypeInfer.annotations.test.cpp",
+            "tests/TypeInfer.anyerror.test.cpp",
+            "tests/TypeInfer.builtins.test.cpp",
+            "tests/TypeInfer.cfa.test.cpp",
+            "tests/TypeInfer.classes.test.cpp",
+            "tests/TypeInfer.definitions.test.cpp",
+            "tests/TypeInfer.functions.test.cpp",
+            "tests/TypeInfer.generics.test.cpp",
+            "tests/TypeInfer.intersectionTypes.test.cpp",
+            "tests/TypeInfer.loops.test.cpp",
+            "tests/TypeInfer.modules.test.cpp",
+            "tests/TypeInfer.negations.test.cpp",
+            "tests/TypeInfer.oop.test.cpp",
+            "tests/TypeInfer.operators.test.cpp",
+            "tests/TypeInfer.primitives.test.cpp",
+            "tests/TypeInfer.provisional.test.cpp",
+            "tests/TypeInfer.refinements.test.cpp",
+            "tests/TypeInfer.singletons.test.cpp",
+            "tests/TypeInfer.tables.test.cpp",
+            "tests/TypeInfer.test.cpp",
+            "tests/TypeInfer.tryUnify.test.cpp",
+            "tests/TypeInfer.typePacks.test.cpp",
+            "tests/TypeInfer.typestates.test.cpp",
+            "tests/TypeInfer.unionTypes.test.cpp",
+            "tests/TypeInfer.unknownnever.test.cpp",
+            "tests/TypePack.test.cpp",
+            "tests/TypePath.test.cpp",
+            "tests/TypeVar.test.cpp",
+            "tests/Unifier2.test.cpp",
+            "tests/Variant.test.cpp",
+            "tests/VecDeque.test.cpp",
+            "tests/VisitType.test.cpp",
+            "tests/main.cpp",
+
+            "tests/Conformance.test.cpp",
+            "tests/IrLowering.test.cpp",
+            "tests/SharedCodeAllocator.test.cpp",
+
+            "CLI/Coverage.cpp",
+            "CLI/Profiler.cpp",
+            "CLI/Repl.cpp",
+            "CLI/Require.cpp",
+
+            "tests/Repl.test.cpp",
+            "tests/RequireByString.test.cpp",
+        },
+    });
+
+    const run_tests = b.step("test", "Run Luau tests");
+    run_tests.dependOn(&b.addInstallArtifact(luau_tests, .{}).step);
+
+    const run_unit_test = b.addRunArtifact(luau_tests);
+    run_unit_test.cwd = upstream.path("");
+
+    // run_unit_test.addArg("--codegen");
+
+    run_tests.dependOn(&run_unit_test.step);
 
     b.installArtifact(luau_ast);
     b.installArtifact(luau_compiler);

@@ -2,13 +2,23 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const shared = b.option(bool, "shared", "Build Lua as a shared library.") orelse false;
     const upstream = b.dependency("lua", .{});
 
-    const liblua = b.addStaticLibrary(.{
+    const liblua = if (shared) b.addSharedLibrary(.{
         .name = "liblua",
         .target = target,
         .optimize = optimize,
         .link_libc = true,
+
+        .version = .{ .major = 5, .minor = 1, .patch = 5 },
+    }) else b.addStaticLibrary(.{
+        .name = "liblua",
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+
+        .version = .{ .major = 5, .minor = 1, .patch = 5 },
     });
 
     liblua.root_module.linkSystemLibrary("m", .{});
@@ -86,10 +96,26 @@ pub fn build(b: *std.Build) void {
     b.installArtifact(luac);
     b.installArtifact(lua);
 
-    const install_liblua = b.addInstallArtifact(liblua, .{
-        .dest_sub_path = b.fmt("liblua{s}", .{target.result.dynamicLibSuffix()}),
-    });
-    b.getInstallStep().dependOn(&install_liblua.step);
+    b.getInstallStep().dependOn(&b.addInstallArtifact(liblua, .{
+        .dest_sub_path = b.fmt("liblua{s}", .{
+            if (shared)
+                target.result.dynamicLibSuffix()
+            else
+                target.result.staticLibSuffix(),
+        }),
+    }).step);
+    
+    const test_step = b.step("test", "Run Lua tests");
+    const upstream_tests = b.dependency("lua-test", .{});
+
+    const run_tests = b.addRunArtifact(lua);
+    run_tests.addArg("-e");
+    run_tests.addArg("_U=true");
+    run_tests.addFileArg(upstream_tests.path("all.lua"));
+    run_tests.cwd = upstream_tests.path("");
+    run_tests.setEnvironmentVariable("LUA_PATH", "?;;");
+
+    test_step.dependOn(&run_tests.step);
 }
 
 const std = @import("std");

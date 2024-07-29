@@ -5,7 +5,7 @@ pub fn build(b: *std.Build) void {
     const upstream = b.dependency("libuv", .{});
 
     const static = b.addStaticLibrary(.{
-        .name = "libuv-static",
+        .name = "uv-static",
         .version = .{ .major = 1, .minor = 48, .patch = 0 },
 
         .target = target,
@@ -14,7 +14,7 @@ pub fn build(b: *std.Build) void {
     });
 
     const shared = b.addSharedLibrary(.{
-        .name = "libuv-shared",
+        .name = "uv-shared",
         .version = .{ .major = 1, .minor = 48, .patch = 0 },
 
         .target = target,
@@ -22,25 +22,8 @@ pub fn build(b: *std.Build) void {
         .link_libc = true,
     });
 
-    const test_static = b.addExecutable(.{
-        .name = "test-libuv-static",
-        .target = target,
-        .optimize = optimize,
-        .link_libc = true,
-    });
-
-    const test_shared = b.addExecutable(.{
-        .name = "test-libuv-shared",
-        .target = target,
-        .optimize = optimize,
-        .link_libc = true,
-    });
-
     b.installArtifact(static);
     b.installArtifact(shared);
-
-    b.installArtifact(test_static);
-    b.installArtifact(test_shared);
 
     inline for (.{ static, shared }) |lib| {
         lib.addCSourceFiles(.{
@@ -190,6 +173,20 @@ pub fn build(b: *std.Build) void {
 
     shared.root_module.addCMacro("BUILDING_UV_SHARED", "1");
 
+    const test_static = b.addExecutable(.{
+        .name = "test-libuv-static",
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+
+    const test_shared = b.addExecutable(.{
+        .name = "test-libuv-shared",
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+
     inline for (.{ test_static, test_shared }) |exe| {
         exe.addCSourceFiles(.{
             .root = upstream.path(""),
@@ -226,6 +223,8 @@ pub fn build(b: *std.Build) void {
     const run_static_test = b.addRunArtifact(test_static);
 
     const test_step = b.step("test", "Run libuv tests");
+    test_step.dependOn(&b.addInstallArtifact(test_shared, .{}).step);
+    test_step.dependOn(&b.addInstallArtifact(test_static, .{}).step);
     test_step.dependOn(&run_shared_test.step);
     test_step.dependOn(&run_static_test.step);
 }
