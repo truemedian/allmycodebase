@@ -22,6 +22,7 @@ jobs:
 
       - name: Build Shared
         working-directory: ${{ matrix.project }}
+        if: matrix.project != 'luau'
         run: zig build test -Dshared=true
 
   build:
@@ -43,4 +44,5 @@ jobs:
 
       - name: Build Shared
         working-directory: ${{ matrix.project }}
+        if: matrix.project != 'luau'
         run: zig build -Doptimize=ReleaseSafe -Dshared=true

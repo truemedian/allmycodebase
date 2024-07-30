@@ -66,6 +66,8 @@ pub fn build(b: *std.Build) void {
         .root = upstream.path("src"),
         .files = &.{"lua.c"},
     });
+    
+    liblua.root_module.addCMacro("LUAI_FUNC", "extern");
 
     if (target.result.isDarwin()) {
         liblua.root_module.addCMacro("LUA_USE_MACOSX", "1");

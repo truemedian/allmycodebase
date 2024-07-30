@@ -71,6 +71,7 @@ pub fn build(b: *std.Build) void {
         .files = &.{"lua.c"},
     });
 
+    liblua.root_module.addCMacro("LUAI_FUNC", "extern");
     liblua.root_module.addCMacro("LUA_COMPAT_5_2", "1");
     luac.root_module.addCMacro("LUA_COMPAT_5_2", "1");
     lua.root_module.addCMacro("LUA_COMPAT_5_2", "1");
