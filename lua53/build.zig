@@ -71,7 +71,6 @@ pub fn build(b: *std.Build) void {
         .files = &.{"lua.c"},
     });
 
-    liblua.root_module.addCMacro("LUAI_FUNC", "extern");
     liblua.root_module.addCMacro("LUA_COMPAT_5_2", "1");
     luac.root_module.addCMacro("LUA_COMPAT_5_2", "1");
     lua.root_module.addCMacro("LUA_COMPAT_5_2", "1");
@@ -89,8 +88,9 @@ pub fn build(b: *std.Build) void {
         liblua.root_module.addCMacro("LUA_USE_APICHECK", "1");
     }
 
-    b.installArtifact(luac);
     b.installArtifact(lua);
+    if (!shared) // we can only provide luac when static linking
+        b.installArtifact(luac);
 
     b.getInstallStep().dependOn(&b.addInstallArtifact(liblua, .{
         .dest_sub_path = b.fmt("liblua{s}", .{
