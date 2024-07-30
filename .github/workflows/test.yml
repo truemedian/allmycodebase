@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: [libuv, lua51, lua52, lua53, lua54, luau]
+        project: [libuv, lua52, lua53, lua54, luau]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,3 +23,24 @@ jobs:
       - name: Build Shared
         working-directory: ${{ matrix.project }}
         run: zig build test -Dshared=true
+
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [libuv, lua51, lua52, lua53, lua54, luau]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v1
+
+      - name: Build Static
+        working-directory: ${{ matrix.project }}
+        run: zig build -Doptimize=ReleaseSafe
+
+      - name: Build Shared
+        working-directory: ${{ matrix.project }}
+        run: zig build -Doptimize=ReleaseSafe -Dshared=true
