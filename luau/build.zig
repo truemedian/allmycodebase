@@ -466,6 +466,7 @@ pub fn build(b: *std.Build) void {
 
             "tests/Repl.test.cpp",
             "tests/RequireByString.test.cpp",
+            "extern/isocline/src/isocline.c",
         },
     });
 

@@ -75,14 +75,7 @@ pub fn build(b: *std.Build) void {
     luac.root_module.addCMacro("LUA_COMPAT_ALL", "1");
     lua.root_module.addCMacro("LUA_COMPAT_ALL", "1");
 
-    if (target.result.os.tag == .linux or target.result.os.tag == .freebsd) {
-        liblua.root_module.addCMacro("LUA_USE_LINUX", "1");
-        luac.root_module.addCMacro("LUA_USE_LINUX", "1");
-        lua.root_module.addCMacro("LUA_USE_LINUX", "1");
-
-        liblua.root_module.linkSystemLibrary("dl", .{});
-        liblua.root_module.linkSystemLibrary("readline", .{});
-    } else if (target.result.isDarwin()) {
+    if (target.result.isDarwin()) {
         liblua.root_module.addCMacro("LUA_USE_MACOSX", "1");
         luac.root_module.addCMacro("LUA_USE_MACOSX", "1");
         lua.root_module.addCMacro("LUA_USE_MACOSX", "1");
@@ -95,6 +88,9 @@ pub fn build(b: *std.Build) void {
 
         liblua.root_module.linkSystemLibrary("dl", .{});
         liblua.root_module.addCMacro("LUA_USE_DLOPEN", "1");
+        liblua.root_module.addCMacro("LUA_USE_STRTODHEX", "1");
+        liblua.root_module.addCMacro("LUA_USE_AFORMAT", "1");
+        liblua.root_module.addCMacro("LUA_USE_LONGLONG", "1");
     }
 
     if (optimize == .Debug) {

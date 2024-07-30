@@ -67,19 +67,10 @@ pub fn build(b: *std.Build) void {
         .files = &.{"lua.c"},
     });
 
-    if (target.result.os.tag == .linux or target.result.os.tag == .freebsd) {
-        liblua.root_module.addCMacro("LUA_USE_LINUX", "1");
-        luac.root_module.addCMacro("LUA_USE_LINUX", "1");
-        lua.root_module.addCMacro("LUA_USE_LINUX", "1");
-
-        liblua.root_module.linkSystemLibrary("dl", .{});
-        liblua.root_module.linkSystemLibrary("readline", .{});
-    } else if (target.result.isDarwin()) {
+    if (target.result.isDarwin()) {
         liblua.root_module.addCMacro("LUA_USE_MACOSX", "1");
         luac.root_module.addCMacro("LUA_USE_MACOSX", "1");
         lua.root_module.addCMacro("LUA_USE_MACOSX", "1");
-
-        liblua.root_module.linkSystemLibrary("readline", .{});
     } else if (target.result.os.tag != .windows) {
         liblua.root_module.addCMacro("LUA_USE_POSIX", "1");
         luac.root_module.addCMacro("LUA_USE_POSIX", "1");

@@ -26,6 +26,10 @@ pub fn build(b: *std.Build) void {
         .files = base_sources,
     });
 
+    if (shared) {
+        libuv.root_module.addCMacro("BUILDING_UV_SHARED", "1");
+    }
+
     if (target.result.os.tag == .windows) {
         libuv.addCSourceFiles(.{
             .root = upstream.path("src"),
@@ -164,8 +168,6 @@ pub fn build(b: *std.Build) void {
     libuv.addIncludePath(upstream.path("src"));
     libuv.addIncludePath(upstream.path("include"));
     libuv.installHeadersDirectory(upstream.path("include"), "", .{});
-
-    shared.root_module.addCMacro("BUILDING_UV_SHARED", "1");
 
     b.installArtifact(libuv);
 
