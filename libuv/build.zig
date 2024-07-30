@@ -2,231 +2,218 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const shared = b.option(bool, "shared", "Build Lua as a shared library.") orelse false;
     const upstream = b.dependency("libuv", .{});
 
-    const static = b.addStaticLibrary(.{
-        .name = "uv-static",
-        .version = .{ .major = 1, .minor = 48, .patch = 0 },
-
+    const libuv = if (shared) b.addSharedLibrary(.{
+        .name = "uv",
         .target = target,
         .optimize = optimize,
         .link_libc = true,
-    });
 
-    const shared = b.addSharedLibrary(.{
-        .name = "uv-shared",
         .version = .{ .major = 1, .minor = 48, .patch = 0 },
-
+    }) else b.addStaticLibrary(.{
+        .name = "uv",
         .target = target,
         .optimize = optimize,
         .link_libc = true,
+
+        .version = .{ .major = 1, .minor = 48, .patch = 0 },
     });
 
-    b.installArtifact(static);
-    b.installArtifact(shared);
+    libuv.addCSourceFiles(.{
+        .root = upstream.path("src"),
+        .files = base_sources,
+    });
 
-    inline for (.{ static, shared }) |lib| {
-        lib.addCSourceFiles(.{
+    if (target.result.os.tag == .windows) {
+        libuv.addCSourceFiles(.{
             .root = upstream.path("src"),
-            .files = base_sources,
+            .files = win_sources,
         });
 
-        if (target.result.os.tag == .windows) {
-            lib.addCSourceFiles(.{
-                .root = upstream.path("src"),
-                .files = win_sources,
-            });
+        libuv.root_module.addCMacro("WIN32_LEAN_AND_MEAN", "1");
+        libuv.root_module.addCMacro("_WIN32_WINNT", "0x0602");
+        libuv.root_module.addCMacro("_CRT_DECLARE_NONSTDC_NAMES", "0");
 
-            lib.root_module.addCMacro("WIN32_LEAN_AND_MEAN", "1");
-            lib.root_module.addCMacro("_WIN32_WINNT", "0x0602");
-            lib.root_module.addCMacro("_CRT_DECLARE_NONSTDC_NAMES", "0");
+        libuv.root_module.linkSystemLibrary("psapi", .{});
+        libuv.root_module.linkSystemLibrary("user32", .{});
+        libuv.root_module.linkSystemLibrary("advapi32", .{});
+        libuv.root_module.linkSystemLibrary("iphlpapi", .{});
+        libuv.root_module.linkSystemLibrary("userenv", .{});
+        libuv.root_module.linkSystemLibrary("ws2_32", .{});
+        libuv.root_module.linkSystemLibrary("dbghelp", .{});
+        libuv.root_module.linkSystemLibrary("ole32", .{});
+        libuv.root_module.linkSystemLibrary("shell32", .{});
+    } else {
+        libuv.addCSourceFiles(.{
+            .root = upstream.path("src"),
+            .files = unix_sources,
+        });
 
-            lib.root_module.linkSystemLibrary("psapi", .{});
-            lib.root_module.linkSystemLibrary("user32", .{});
-            lib.root_module.linkSystemLibrary("advapi32", .{});
-            lib.root_module.linkSystemLibrary("iphlpapi", .{});
-            lib.root_module.linkSystemLibrary("userenv", .{});
-            lib.root_module.linkSystemLibrary("ws2_32", .{});
-            lib.root_module.linkSystemLibrary("dbghelp", .{});
-            lib.root_module.linkSystemLibrary("ole32", .{});
-            lib.root_module.linkSystemLibrary("shell32", .{});
-        } else {
-            lib.addCSourceFiles(.{
-                .root = upstream.path("src"),
-                .files = unix_sources,
-            });
-
-            lib.root_module.linkSystemLibrary("pthread", .{});
-        }
-
-        switch (target.result.os.tag) {
-            .windows => {},
-            .aix => {
-                lib.root_module.addCMacro("_ALL_SOURCE", "1");
-                lib.root_module.addCMacro("_LINUX_SOURCE_COMPAT", "1");
-                lib.root_module.addCMacro("_THREAD_SAFE", "1");
-                lib.root_module.addCMacro("_XOPEN_SOURCE", "500");
-                lib.root_module.addCMacro("HAVE_SYS_AHAFS_EVPRODS_H", "1");
-
-                lib.root_module.linkSystemLibrary("perfstat", .{});
-
-                lib.root_module.addCSourceFiles(.{
-                    .root = upstream.path("src"),
-                    .files = &.{ "unix/aix.c", "unix/aix-common.c" },
-                });
-            },
-            .linux => {
-                lib.root_module.addCSourceFiles(.{
-                    .root = upstream.path("src"),
-                    .files = linux_sources,
-                });
-
-                lib.root_module.addCMacro("_GNU_SOURCE", "1");
-                lib.root_module.addCMacro("_POSIX_C_SOURCE", "200112");
-
-                lib.root_module.linkSystemLibrary("dl", .{});
-
-                if (target.result.abi != .android)
-                    lib.root_module.linkSystemLibrary("rt", .{});
-            },
-            .ios, .macos => {
-                lib.root_module.addCSourceFiles(.{
-                    .root = upstream.path("src"),
-                    .files = darwin_sources,
-                });
-
-                lib.root_module.addCMacro("_DARWIN_UNLIMITED_SELECT", "1");
-                lib.root_module.addCMacro("_DARWIN_USE_64_BIT_INODE", "1");
-            },
-            .dragonfly => {
-                lib.root_module.addCSourceFiles(.{
-                    .root = upstream.path("src"),
-                    .files = dragonfly_sources,
-                });
-            },
-            .freebsd, .kfreebsd => {
-                lib.root_module.addCSourceFiles(.{
-                    .root = upstream.path("src"),
-                    .files = freebsd_sources,
-                });
-            },
-            .netbsd => {
-                lib.root_module.addCSourceFiles(.{
-                    .root = upstream.path("src"),
-                    .files = netbsd_sources,
-                });
-
-                lib.root_module.linkSystemLibrary("kvm", .{});
-            },
-            .openbsd => {
-                lib.root_module.addCSourceFiles(.{
-                    .root = upstream.path("src"),
-                    .files = openbsd_sources,
-                });
-            },
-            .hurd => {
-                lib.root_module.addCSourceFiles(.{
-                    .root = upstream.path("src"),
-                    .files = hurd_sources,
-                });
-
-                lib.root_module.linkSystemLibrary("dl", .{});
-            },
-            .solaris => {
-                lib.root_module.addCSourceFiles(.{
-                    .root = upstream.path("src"),
-                    .files = solaris_sources,
-                });
-
-                if (target.result.os.getVersionRange().semver.includesVersion(.{ .major = 5, .minor = 10, .patch = 0 })) {
-                    lib.root_module.addCMacro("SUNOS_NO_IFADDRS", "1");
-                    lib.root_module.linkSystemLibrary("rt", .{});
-                }
-
-                lib.root_module.addCMacro("__EXTENSIONS__", "1");
-                lib.root_module.addCMacro("_XOPEN_SOURCE", "500");
-                lib.root_module.addCMacro("_REENTRANT", "1");
-
-                lib.root_module.linkSystemLibrary("kstat", .{});
-                lib.root_module.linkSystemLibrary("nsl", .{});
-                lib.root_module.linkSystemLibrary("sendfile", .{});
-                lib.root_module.linkSystemLibrary("socket", .{});
-            },
-            .haiku => {
-                lib.root_module.addCSourceFiles(.{
-                    .root = upstream.path("src"),
-                    .files = haiku_sources,
-                });
-
-                lib.root_module.addCMacro("_BSD_SOURCE", "1");
-
-                lib.root_module.linkSystemLibrary("bsd", .{});
-                lib.root_module.linkSystemLibrary("network", .{});
-            },
-            else => std.debug.panic("unsupported target os: {s}", .{@tagName(target.result.os.tag)}),
-        }
-
-        lib.addIncludePath(upstream.path("src"));
-        lib.addIncludePath(upstream.path("include"));
-        lib.installHeadersDirectory(upstream.path("include"), "", .{});
+        libuv.root_module.linkSystemLibrary("pthread", .{});
     }
+
+    switch (target.result.os.tag) {
+        .windows => {},
+        .aix => {
+            libuv.root_module.addCMacro("_ALL_SOURCE", "1");
+            libuv.root_module.addCMacro("_LINUX_SOURCE_COMPAT", "1");
+            libuv.root_module.addCMacro("_THREAD_SAFE", "1");
+            libuv.root_module.addCMacro("_XOPEN_SOURCE", "500");
+            libuv.root_module.addCMacro("HAVE_SYS_AHAFS_EVPRODS_H", "1");
+
+            libuv.root_module.linkSystemLibrary("perfstat", .{});
+
+            libuv.root_module.addCSourceFiles(.{
+                .root = upstream.path("src"),
+                .files = &.{ "unix/aix.c", "unix/aix-common.c" },
+            });
+        },
+        .linux => {
+            libuv.root_module.addCSourceFiles(.{
+                .root = upstream.path("src"),
+                .files = linux_sources,
+            });
+
+            libuv.root_module.addCMacro("_GNU_SOURCE", "1");
+            libuv.root_module.addCMacro("_POSIX_C_SOURCE", "200112");
+
+            libuv.root_module.linkSystemLibrary("dl", .{});
+
+            if (target.result.abi != .android)
+                libuv.root_module.linkSystemLibrary("rt", .{});
+        },
+        .ios, .macos => {
+            libuv.root_module.addCSourceFiles(.{
+                .root = upstream.path("src"),
+                .files = darwin_sources,
+            });
+
+            libuv.root_module.addCMacro("_DARWIN_UNLIMITED_SELECT", "1");
+            libuv.root_module.addCMacro("_DARWIN_USE_64_BIT_INODE", "1");
+        },
+        .dragonfly => {
+            libuv.root_module.addCSourceFiles(.{
+                .root = upstream.path("src"),
+                .files = dragonfly_sources,
+            });
+        },
+        .freebsd, .kfreebsd => {
+            libuv.root_module.addCSourceFiles(.{
+                .root = upstream.path("src"),
+                .files = freebsd_sources,
+            });
+        },
+        .netbsd => {
+            libuv.root_module.addCSourceFiles(.{
+                .root = upstream.path("src"),
+                .files = netbsd_sources,
+            });
+
+            libuv.root_module.linkSystemLibrary("kvm", .{});
+        },
+        .openbsd => {
+            libuv.root_module.addCSourceFiles(.{
+                .root = upstream.path("src"),
+                .files = openbsd_sources,
+            });
+        },
+        .hurd => {
+            libuv.root_module.addCSourceFiles(.{
+                .root = upstream.path("src"),
+                .files = hurd_sources,
+            });
+
+            libuv.root_module.linkSystemLibrary("dl", .{});
+        },
+        .solaris => {
+            libuv.root_module.addCSourceFiles(.{
+                .root = upstream.path("src"),
+                .files = solaris_sources,
+            });
+
+            if (target.result.os.getVersionRange().semver.includesVersion(.{ .major = 5, .minor = 10, .patch = 0 })) {
+                libuv.root_module.addCMacro("SUNOS_NO_IFADDRS", "1");
+                libuv.root_module.linkSystemLibrary("rt", .{});
+            }
+
+            libuv.root_module.addCMacro("__EXTENSIONS__", "1");
+            libuv.root_module.addCMacro("_XOPEN_SOURCE", "500");
+            libuv.root_module.addCMacro("_REENTRANT", "1");
+
+            libuv.root_module.linkSystemLibrary("kstat", .{});
+            libuv.root_module.linkSystemLibrary("nsl", .{});
+            libuv.root_module.linkSystemLibrary("sendfile", .{});
+            libuv.root_module.linkSystemLibrary("socket", .{});
+        },
+        .haiku => {
+            libuv.root_module.addCSourceFiles(.{
+                .root = upstream.path("src"),
+                .files = haiku_sources,
+            });
+
+            libuv.root_module.addCMacro("_BSD_SOURCE", "1");
+
+            libuv.root_module.linkSystemLibrary("bsd", .{});
+            libuv.root_module.linkSystemLibrary("network", .{});
+        },
+        else => std.debug.panic("unsupported target os: {s}", .{@tagName(target.result.os.tag)}),
+    }
+
+    libuv.addIncludePath(upstream.path("src"));
+    libuv.addIncludePath(upstream.path("include"));
+    libuv.installHeadersDirectory(upstream.path("include"), "", .{});
 
     shared.root_module.addCMacro("BUILDING_UV_SHARED", "1");
 
-    const test_static = b.addExecutable(.{
-        .name = "test-libuv-static",
-        .target = target,
-        .optimize = optimize,
-        .link_libc = true,
-    });
-
-    const test_shared = b.addExecutable(.{
-        .name = "test-libuv-shared",
-        .target = target,
-        .optimize = optimize,
-        .link_libc = true,
-    });
-
-    inline for (.{ test_static, test_shared }) |exe| {
-        exe.addCSourceFiles(.{
-            .root = upstream.path(""),
-            .files = base_test_sources,
-        });
-
-        if (target.result.os.tag == .windows) {
-            exe.addCSourceFiles(.{
-                .root = upstream.path(""),
-                .files = win_test_sources,
-            });
-        } else {
-            exe.addCSourceFiles(.{
-                .root = upstream.path(""),
-                .files = unix_test_sources,
-            });
-        }
-
-        exe.addIncludePath(upstream.path("src"));
-        exe.addIncludePath(upstream.path("include"));
-    }
-
-    if (target.result.os.tag == .windows) {
-        test_shared.root_module.linkSystemLibrary("ws2_32", .{});
-    } else if (target.result.os.tag.isDarwin() or target.result.os.tag.isBSD() or target.result.os.tag == .linux) {
-        test_shared.root_module.linkSystemLibrary("util", .{});
-    }
-
-    test_shared.root_module.addCMacro("USING_UV_SHARED", "1");
-    test_shared.root_module.linkLibrary(shared);
-    test_static.root_module.linkLibrary(static);
-
-    const run_shared_test = b.addRunArtifact(test_shared);
-    const run_static_test = b.addRunArtifact(test_static);
+    b.installArtifact(libuv);
 
     const test_step = b.step("test", "Run libuv tests");
-    test_step.dependOn(&b.addInstallArtifact(test_shared, .{}).step);
-    test_step.dependOn(&b.addInstallArtifact(test_static, .{}).step);
-    test_step.dependOn(&run_shared_test.step);
-    test_step.dependOn(&run_static_test.step);
+
+    const test_exe = b.addExecutable(.{
+        .name = "uv-test",
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+
+    test_exe.addCSourceFiles(.{
+        .root = upstream.path(""),
+        .files = base_test_sources,
+    });
+
+    if (target.result.os.tag == .windows) {
+        test_exe.addCSourceFiles(.{
+            .root = upstream.path(""),
+            .files = win_test_sources,
+        });
+    } else {
+        test_exe.addCSourceFiles(.{
+            .root = upstream.path(""),
+            .files = unix_test_sources,
+        });
+    }
+
+    test_exe.addIncludePath(upstream.path("src"));
+    test_exe.addIncludePath(upstream.path("include"));
+
+    if (shared) {
+        if (target.result.os.tag == .windows) {
+            test_exe.root_module.linkSystemLibrary("ws2_32", .{});
+        } else if (target.result.os.tag.isDarwin() or target.result.os.tag.isBSD() or target.result.os.tag == .linux) {
+            test_exe.root_module.linkSystemLibrary("util", .{});
+        }
+
+        test_exe.root_module.addCMacro("USING_UV_SHARED", "1");
+    }
+
+    test_exe.root_module.linkLibrary(libuv);
+
+    const run_test = b.addRunArtifact(test_exe);
+
+    test_step.dependOn(&b.addInstallArtifact(test_exe, .{}).step);
+    test_step.dependOn(&run_test.step);
 }
 
 const base_sources: []const []const u8 = &.{
