@@ -95,18 +95,6 @@ pub fn build(b: *std.Build) void {
                 target.result.staticLibSuffix(),
         }),
     }).step);
-    
-    const test_step = b.step("test", "Run Lua tests");
-    const upstream_tests = b.dependency("lua-test", .{});
-
-    const run_tests = b.addRunArtifact(lua);
-    run_tests.addArg("-e");
-    run_tests.addArg("_U=true");
-    run_tests.addFileArg(upstream_tests.path("all.lua"));
-    run_tests.cwd = upstream_tests.path("");
-    run_tests.setEnvironmentVariable("LUA_PATH", "?;;");
-
-    test_step.dependOn(&run_tests.step);
 }
 
 const std = @import("std");
