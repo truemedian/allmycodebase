@@ -211,7 +211,6 @@ pub fn build(b: *std.Build) void {
 
         if (target.result.os.tag != .windows) {
             test_exe.root_module.linkSystemLibrary("pthread", .{});
-            test_exe.root_module.addCMacro("__POSIX__", "1");
         }
     }
 
@@ -363,25 +362,27 @@ const base_test_sources: []const []const u8 = &.{
     "test/test-tcp-write-fail.c",                          "test/test-tcp-write-queue-order.c",
     "test/test-tcp-write-to-half-open-connection.c",       "test/test-tcp-writealot.c",
     "test/test-test-macros.c",                             "test/test-thread-affinity.c",
-    "test/test-thread-equal.c",                            "test/test-thread.c",
-    "test/test-thread-priority.c",                         "test/test-threadpool-cancel.c",
-    "test/test-threadpool.c",                              "test/test-timer-again.c",
-    "test/test-timer-from-check.c",                        "test/test-timer.c",
-    "test/test-tmpdir.c",                                  "test/test-tty-duplicate-key.c",
-    "test/test-tty-escape-sequence-processing.c",          "test/test-tty.c",
-    "test/test-udp-alloc-cb-fail.c",                       "test/test-udp-bind.c",
-    "test/test-udp-connect.c",                             "test/test-udp-connect6.c",
-    "test/test-udp-create-socket-early.c",                 "test/test-udp-dgram-too-big.c",
-    "test/test-udp-ipv6.c",                                "test/test-udp-mmsg.c",
-    "test/test-udp-multicast-interface.c",                 "test/test-udp-multicast-interface6.c",
-    "test/test-udp-multicast-join.c",                      "test/test-udp-multicast-join6.c",
-    "test/test-udp-multicast-ttl.c",                       "test/test-udp-open.c",
-    "test/test-udp-options.c",                             "test/test-udp-send-and-recv.c",
-    "test/test-udp-send-hang-loop.c",                      "test/test-udp-send-immediate.c",
-    "test/test-udp-sendmmsg-error.c",                      "test/test-udp-send-unreachable.c",
-    "test/test-udp-try-send.c",                            "test/test-udp-recv-in-a-row.c",
-    "test/test-uname.c",                                   "test/test-walk-handles.c",
+    "test/test-thread-equal.c",                            "test/test-thread-priority.c",
+    "test/test-threadpool-cancel.c",                       "test/test-threadpool.c",
+    "test/test-timer-again.c",                             "test/test-timer-from-check.c",
+    "test/test-timer.c",                                   "test/test-tmpdir.c",
+    "test/test-tty-duplicate-key.c",                       "test/test-tty-escape-sequence-processing.c",
+    "test/test-tty.c",                                     "test/test-udp-alloc-cb-fail.c",
+    "test/test-udp-bind.c",                                "test/test-udp-connect.c",
+    "test/test-udp-connect6.c",                            "test/test-udp-create-socket-early.c",
+    "test/test-udp-dgram-too-big.c",                       "test/test-udp-ipv6.c",
+    "test/test-udp-mmsg.c",                                "test/test-udp-multicast-interface.c",
+    "test/test-udp-multicast-interface6.c",                "test/test-udp-multicast-join.c",
+    "test/test-udp-multicast-join6.c",                     "test/test-udp-multicast-ttl.c",
+    "test/test-udp-open.c",                                "test/test-udp-options.c",
+    "test/test-udp-send-and-recv.c",                       "test/test-udp-send-hang-loop.c",
+    "test/test-udp-send-immediate.c",                      "test/test-udp-sendmmsg-error.c",
+    "test/test-udp-send-unreachable.c",                    "test/test-udp-try-send.c",
+    "test/test-udp-recv-in-a-row.c",                       "test/test-uname.c",
+    "test/test-walk-handles.c",
     "test/test-watcher-cross-stop.c",
+
+    // test/test-thread.c
 };
 
 const win_test_sources: []const []const u8 = &.{
