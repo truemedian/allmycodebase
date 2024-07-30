@@ -191,6 +191,7 @@ pub fn build(b: *std.Build) void {
     luau_codegen.addIncludePath(upstream.path("VM/src"));
     luau_codegen.addIncludePath(upstream.path("CodeGen/include"));
     luau_codegen.installHeadersDirectory(upstream.path("CodeGen/include"), "", .{});
+    luau_codegen.linkSystemLibrary("unwind");
     luau_codegen.addCSourceFiles(.{
         .root = upstream.path(""),
         .files = &.{

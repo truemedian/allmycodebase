@@ -208,6 +208,10 @@ pub fn build(b: *std.Build) void {
         }
 
         test_exe.root_module.addCMacro("USING_UV_SHARED", "1");
+
+        if (target.result.os.tag != .windows) {
+            test_exe.root_module.linkSystemLibrary("pthread", .{});
+        }
     }
 
     test_exe.root_module.linkLibrary(libuv);
