@@ -211,6 +211,7 @@ pub fn build(b: *std.Build) void {
 
         if (target.result.os.tag != .windows) {
             test_exe.root_module.linkSystemLibrary("pthread", .{});
+            test_exe.root_module.addCMacro("__POSIX__", "1");
         }
     }
 
