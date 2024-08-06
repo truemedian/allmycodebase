@@ -1,0 +1,14 @@
+.{
+    .name = "luajit",
+    .version = "2.1.0-1707061634", // Ensure this always matches `.relver` in the below archive
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+    },
+    .dependencies = .{
+        .luajit = .{
+            .url = "https://github.com/LuaJIT/LuaJIT/archive/0d313b243194a0b8d2399d8b549ca5a0ff234db5.tar.gz",
+            .hash = "1220360690f0119547dc0b9397dc6423cc009362e173849e190247f91b6bc15a0d70",
+        },
+    },
+}
