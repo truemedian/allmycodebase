@@ -109,7 +109,7 @@ pub fn build(b: *std.Build) void {
                 target.result.staticLibSuffix(),
         }),
     }).step);
-    
+
     const test_step = b.step("test", "Run Lua tests");
     const upstream_tests = b.dependency("lua-test", .{});
 
