@@ -4,6 +4,8 @@
     .paths = .{
         "build.zig",
         "build.zig.zon",
+        "all.lua",
+        "big.lua",
     },
     .dependencies = .{
         .lua = .{

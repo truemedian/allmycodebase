@@ -103,66 +103,11 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run Lua tests");
     const upstream_tests = b.dependency("lua-test", .{});
 
-    const lib1 = b.addSharedLibrary(.{
-        .name = "lib1",
-        .optimize = optimize,
-        .target = target,
-        .link_libc = true,
-    });
-
-    lib1.addCSourceFile(.{ .file = upstream_tests.path("libs/lib1.c") });
-
-    test_step.dependOn(&b.addInstallArtifact(lib1, .{
-        .dest_sub_path = b.fmt("lib1{s}", .{target.result.dynamicLibSuffix()}),
-    }).step);
-
-    const lib11 = b.addStaticLibrary(.{
-        .name = "lib11",
-        .optimize = optimize,
-        .target = target,
-        .link_libc = true,
-    });
-
-    lib11.addCSourceFile(.{ .file = upstream_tests.path("libs/lib11.c") });
-
-    test_step.dependOn(&b.addInstallArtifact(lib11, .{
-        .dest_sub_path = b.fmt("lib11{s}", .{target.result.dynamicLibSuffix()}),
-    }).step);
-
-    const lib2 = b.addSharedLibrary(.{
-        .name = "lib2",
-        .optimize = optimize,
-        .target = target,
-        .link_libc = true,
-    });
-
-    lib2.addCSourceFile(.{ .file = upstream_tests.path("libs/lib2.c") });
-
-    test_step.dependOn(&b.addInstallArtifact(lib2, .{
-        .dest_sub_path = b.fmt("lib2{s}", .{target.result.dynamicLibSuffix()}),
-    }).step);
-
-    test_step.dependOn(&b.addInstallArtifact(lib2, .{
-        .dest_sub_path = b.fmt("-lib2{s}", .{target.result.dynamicLibSuffix()}),
-    }).step);
-
-    const lib21 = b.addStaticLibrary(.{
-        .name = "lib21",
-        .optimize = optimize,
-        .target = target,
-        .link_libc = true,
-    });
-
-    lib21.addCSourceFile(.{ .file = upstream_tests.path("libs/lib21.c") });
-
-    test_step.dependOn(&b.addInstallArtifact(lib21, .{
-        .dest_sub_path = b.fmt("lib21{s}", .{target.result.dynamicLibSuffix()}),
-    }).step);
-
     const run_tests = b.addRunArtifact(lua);
-    run_tests.addFileArg(upstream_tests.path("all.lua"));
+    run_tests.addFileArg(b.path("all.lua"));
+    run_tests.addFileArg(b.path("big.lua"));
     run_tests.cwd = upstream_tests.path("");
-    run_tests.setEnvironmentVariable("LUA_PATH", b.fmt("?;{s}/libs/?.lua;;", .{b.install_prefix}));
+    run_tests.setEnvironmentVariable("LUA_PATH", "?;;");
 
     test_step.dependOn(&run_tests.step);
 }
